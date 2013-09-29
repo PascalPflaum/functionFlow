@@ -1,2 +1,3 @@
 /test/jscoverage.exe
 /test/coverage.html
+/node_modules
