@@ -1,0 +1,33 @@
+{
+  "name": "functionFlow",
+  "version": "0.0.1",
+  "description": "Helps you to structure asynchronous and parallel tasks",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "chai": "~1.8.0",
+    "sinon": "~1.7.3",
+    "sinon-chai": "~2.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PascalPflaum/functionFlow.git"
+  },
+  "keywords": [
+    "flow",
+    "control",
+    "parallel",
+    "async"
+  ],
+  "author": "Pascal Pflaum",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PascalPflaum/functionFlow/issues"
+  }
+}
