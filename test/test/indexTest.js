@@ -135,7 +135,6 @@ describe('errors', function() {
 
 		var firstStep = sinon.spy(function(callback) {
 			setTimeout(function() {
-				debugger;
 				callback(new Error('TestError'), undefined);
 			});
 		});
@@ -180,6 +179,69 @@ describe('errors', function() {
 	});
 
 });
+
+
+describe('do for all', function() {
+	it('calling with one element, single argument', function(done) {
+		var flow = new FunctionFlow();
+		var flowDone = sinon.spy(function(error, data) {
+			expect(error).to.have.length(1);
+			error.forEach(function(err) {
+				expect(err).to.be.undefined;
+			});
+			expect(data).to.have.length(1);
+			data.forEach(function(dat) {
+				expect(dat).to.be.true;
+			});
+			expect(firstStep).to.be.calledOnce;
+			done();
+		});
+
+		var firstStep = sinon.spy(function(callback, prevError, prevData, parsedArguments) {
+
+			expect(parsedArguments[0]).to.be.equal('argumentTestA');
+			setTimeout(function() {
+				callback(undefined, true);
+			});
+		});
+		flow.do(firstStep).forEach([['argumentTestA']]).now(flowDone);
+	});
+
+	it('calling with two element, single argument', function(done) {
+		var flow = new FunctionFlow();
+		var flowDone = sinon.spy(function(error, data) {
+			expect(error).to.have.length(2);
+			error.forEach(function(err) {
+				expect(err).to.be.undefined;
+			});
+			expect(data).to.have.length(2);
+			data.forEach(function(dat) {
+				expect(dat).to.be.true;
+			});
+			expect(firstStep).to.be.calledTwice;
+			done();
+		});
+
+		var run = 0;
+
+		var firstStep = sinon.spy(function(callback, prevError, prevData, parsedArguments) {
+			
+			run++;
+			if (run === 1) {
+				var assumedArgument = 'argumentTestA';
+			} else if (run === 2) {
+				assumedArgument = 'argumentTestB';
+			}
+			expect(parsedArguments[0]).to.be.equal(assumedArgument);
+			setTimeout(function() {
+				callback(undefined, true);
+			});
+		});
+
+		flow.do(firstStep).forEach([['argumentTestA'], ['argumentTestB']]).now(flowDone);
+	});
+});
+
 
 describe('data parsing to next step', function() {
 	it('second step gets data of first step', function(done) {

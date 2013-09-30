@@ -1,6 +1,5 @@
-(function() {
-	
-	//the magic node export
+var FunctionFlow = (function() {
+//the magic node export
 	if (typeof module !== 'undefined' && module.exports) {
 		module.exports = FunctionFlow;
 	}
@@ -36,20 +35,52 @@
 		 * @param {functions} doThis
 		 * @returns {FunctionStep}
 		 */
-		self.push = function(doThis) {
-			runs.push(doThis);
+		self.addParallelTask = function(doThis) {
+			runs.push({func : doThis});
 			return self;
 		};
 
+		
+		/**
+		 * during run the last added step should be run once for the given array of arguments
+		 * @param {type} args
+		 * @returns {FunctionFlow._L1.FunctionStep}
+		 */
+		self.forEach = function(args) {
+				runs[runs.length-1].argsForEach = args;
+			return self;
+		};
 
 		/**
 		 * start the parallel run now
-		 * @param {type} stepDone
+		 * @param {function} stepDone
 		 * @returns {unresolved}
 		 */
 		self.now = function(stepDone, argError, argData) {
 
 			var completedRun = 0;
+
+			//the run has forEach arguments, replace the single run with one for every element in argsForEach
+			for (var i = runs.length - 1; i >= 0; i--) {
+				
+				var currentRun = runs[i];
+				if (!runs[i].argsForEach) {
+					continue;
+				}
+				
+				//move the original method
+				runs.splice(i, 1);
+
+				//for every argument set create a new function
+				while (currentRun.argsForEach.length > 0) {
+					var currentArgs = currentRun.argsForEach.pop();
+					runs.splice(i, 0, {
+						func : currentRun.func,
+						args : currentArgs
+					});
+				}
+				
+			}
 
 			//for every function in the step, call the function and fetch the results via the runDone method
 			runs.forEach(function singleRun(currentRun, index) {
@@ -69,8 +100,10 @@
 					}
 				}
 
+
+
 				try {
-					currentRun(runDone, argError, argData);
+					currentRun.func(runDone, argError, argData, currentRun.args);
 				} catch (error) {
 					runDone(error);
 				}
@@ -115,7 +148,7 @@
 				throw new TypeError('do requires first argument to be a function');
 			}
 			var currentStep = new FunctionStep();
-			currentStep.push(doThis);
+			currentStep.addParallelTask(doThis);
 			steps.push(currentStep);
 
 			return self;
@@ -132,7 +165,12 @@
 				throw new TypeError('and requires first argument to be a function');
 			}
 
-			steps[steps.length - 1].push(doThis);
+			steps[steps.length - 1].addParallelTask(doThis);
+			return self;
+		};
+
+		self.forEach = function(elements) {
+			steps[steps.length - 1].forEach(elements);
 			return self;
 		};
 
@@ -188,4 +226,6 @@
 
 		return self;
 	}
+
+	return FunctionFlow;
 })();
