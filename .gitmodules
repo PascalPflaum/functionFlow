@@ -3,7 +3,10 @@
 	url = https://github.com/visionmedia/mocha.git
 [submodule "test/suite/chai"]
 	path = test/suite/chai
-	url = https://github.com/visionmedia/mocha.git
+	url = https://github.com/chaijs/chai.git
+[submodule "test/suite/sinon-chai"]
+	path = test/suite/sinon-chai
+	url = https://github.com/domenic/sinon-chai.git
 [submodule "test/suite/sinon"]
 	path = test/suite/sinon
 	url = https://github.com/cjohansen/Sinon.JS.git
