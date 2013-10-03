@@ -34,8 +34,8 @@ describe('methods without return value should return the flow', function() {
 		})).to.equal(flow);
 	}
 
-	it('flow.do', function() {
-		testMethod('do');
+	it('flow.run', function() {
+		testMethod('run');
 	});
 
 });
@@ -66,7 +66,7 @@ describe('method order', function() {
 		var flow = new FunctionFlow();
 		var flowDone = sinon.spy();
 		var firstStep = sinon.spy();
-		flow.do(firstStep).now(flowDone);
+		flow.run(firstStep).now(flowDone);
 		expect(firstStep).to.be.calledOnce;
 		expect(flowDone).to.be.not.called;
 	});
@@ -79,13 +79,13 @@ describe('method order', function() {
 			expect(flowDone).always.have.been.calledWithExactly([undefined], [undefined]);
 			done();
 		});
-		var firstStep = sinon.spy(function(callback) {
+		var firstStep = sinon.spy(function(flow) {
 			setTimeout(function() {
-				callback();
+				flow.done();
 			});
 		});
 
-		flow.do(firstStep).now(flowDone);
+		flow.run(firstStep).now(flowDone);
 
 	});
 });
@@ -106,14 +106,14 @@ describe('errors', function() {
 			expect(flowDone).to.be.calledOnce;
 			done();
 		});
-		var firstStep = sinon.spy(function(callback) {
+		var firstStep = sinon.spy(function(flow) {
 			throw new ReferenceError('testError');
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
 
-		flow.do(firstStep).now(flowDone);
+		flow.run(firstStep).now(flowDone);
 	});
 
 	it('a error stops the execution of a flow', function(done) {
@@ -133,18 +133,18 @@ describe('errors', function() {
 			done();
 		});
 
-		var firstStep = sinon.spy(function(callback) {
+		var firstStep = sinon.spy(function(flow) {
 			setTimeout(function() {
-				callback(new Error('TestError'), undefined);
+				flow.done(new Error('TestError'), undefined);
 			});
 		});
-		var secondsStep = sinon.spy(function(callback, prevError, prevData) {
+		var secondsStep = sinon.spy(function(flow) {
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
 
-		flow.do(firstStep).do(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondsStep).now(flowDone);
 	});
 	it('a thrown error stops the execution of a flow', function(done) {
 		var flow = new FunctionFlow();
@@ -163,19 +163,19 @@ describe('errors', function() {
 			done();
 		});
 
-		var firstStep = sinon.spy(function(callback) {
+		var firstStep = sinon.spy(function(flow) {
 			throw new ReferenceError('TestError');
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
-		var secondsStep = sinon.spy(function(callback, prevError, prevData) {
+		var secondsStep = sinon.spy(function(flow) {
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
 
-		flow.do(firstStep).do(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondsStep).now(flowDone);
 	});
 
 });
@@ -197,14 +197,14 @@ describe('do for all', function() {
 			done();
 		});
 
-		var firstStep = sinon.spy(function(callback, prevError, prevData, parsedArguments) {
+		var firstStep = sinon.spy(function(flow, parsedArgumentA) {
 
-			expect(parsedArguments[0]).to.be.equal('argumentTestA');
+			expect(parsedArgumentA).to.be.equal('argumentTestA');
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
-		flow.do(firstStep).forEach([['argumentTestA']]).now(flowDone);
+		flow.run(firstStep).forEach([['argumentTestA']]).now(flowDone);
 	});
 
 	it('calling with two element, single argument', function(done) {
@@ -224,7 +224,7 @@ describe('do for all', function() {
 
 		var run = 0;
 
-		var firstStep = sinon.spy(function(callback, prevError, prevData, parsedArguments) {
+		var firstStep = sinon.spy(function(flow, parsedArgumentA) {
 			
 			run++;
 			if (run === 1) {
@@ -232,13 +232,13 @@ describe('do for all', function() {
 			} else if (run === 2) {
 				assumedArgument = 'argumentTestB';
 			}
-			expect(parsedArguments[0]).to.be.equal(assumedArgument);
+			expect(parsedArgumentA).to.be.equal(assumedArgument);
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
 
-		flow.do(firstStep).forEach([['argumentTestA'], ['argumentTestB']]).now(flowDone);
+		flow.run(firstStep).forEach([['argumentTestA'], ['argumentTestB']]).now(flowDone);
 	});
 });
 
@@ -261,25 +261,25 @@ describe('data parsing to next step', function() {
 			done();
 		});
 
-		var firstStep = sinon.spy(function(callback) {
+		var firstStep = sinon.spy(function(flow) {
 			setTimeout(function() {
-				callback(undefined, false);
+				flow.done(undefined, false);
 			});
 		});
-		var secondsStep = sinon.spy(function(callback, prevError, prevData) {
-			expect(prevError).to.have.length(1);
-			prevError.forEach(function(err) {
+		var secondsStep = sinon.spy(function(flow) {
+			expect(flow.previousStep.error).to.have.length(1);
+			flow.previousStep.error.forEach(function(err) {
 				expect(err).to.be.undefined;
 			});
-			expect(prevData).to.have.length(1);
-			prevData.forEach(function(dat) {
+			expect(flow.previousStep.data).to.have.length(1);
+			flow.previousStep.data.forEach(function(dat) {
 			});
 			setTimeout(function() {
-				callback(undefined, true);
+				flow.done(undefined, true);
 			});
 		});
 
-		flow.do(firstStep).do(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondsStep).now(flowDone);
 	});
 
 
@@ -303,13 +303,13 @@ describe('data collecting', function() {
 				expect(flowDone).to.be.calledOnce;
 				done();
 			});
-			var firstStep = sinon.spy(function(callback) {
+			var firstStep = sinon.spy(function(flow) {
 				setTimeout(function() {
-					callback(undefined, false);
+					flow.done(undefined, false);
 				});
 			});
 
-			flow.do(firstStep).now(flowDone);
+			flow.run(firstStep).now(flowDone);
 		});
 
 		it('single step with two parallel run', function(done) {
@@ -327,13 +327,13 @@ describe('data collecting', function() {
 				expect(flowDone).to.be.calledOnce;
 				done();
 			});
-			var firstStep = sinon.spy(function(callback) {
+			var firstStep = sinon.spy(function(flow) {
 				setTimeout(function() {
-					callback(undefined, false);
+					flow.done(undefined, false);
 				});
 			});
 
-			flow.do(firstStep).and(firstStep).now(flowDone);
+			flow.run(firstStep).and(firstStep).now(flowDone);
 		});
 
 		describe('result order in parallel run', function() {
@@ -354,18 +354,18 @@ describe('data collecting', function() {
 					expect(flowDone).to.be.calledOnce;
 					done();
 				});
-				var firstRun = sinon.spy(function(callback) {
+				var firstRun = sinon.spy(function(flow) {
 					setTimeout(function() {
-						callback(undefined, false);
+						flow.done(undefined, false);
 					});
 				});
-				var secondRun = sinon.spy(function(callback) {
+				var secondRun = sinon.spy(function(flow) {
 					setTimeout(function() {
-						callback(undefined, true);
+						flow.done(undefined, true);
 					}, 50);
 				});
 
-				flow.do(firstRun).and(secondRun).now(flowDone);
+				flow.run(firstRun).and(secondRun).now(flowDone);
 			});
 
 			it('second attached function is faster', function(done) {
@@ -384,18 +384,18 @@ describe('data collecting', function() {
 					expect(flowDone).to.be.calledOnce;
 					done();
 				});
-				var firstRun = sinon.spy(function(callback) {
+				var firstRun = sinon.spy(function(flow) {
 					setTimeout(function() {
-						callback(undefined, false);
+						flow.done(undefined, false);
 					}, 50);
 				});
-				var secondRun = sinon.spy(function(callback) {
+				var secondRun = sinon.spy(function(flow) {
 					setTimeout(function() {
-						callback(undefined, true);
+						flow.done(undefined, true);
 					});
 				});
 
-				flow.do(firstRun).and(secondRun).now(flowDone);
+				flow.run(firstRun).and(secondRun).now(flowDone);
 			});
 		});
 	});

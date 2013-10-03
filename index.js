@@ -23,97 +23,122 @@ var FunctionFlow = (function() {
 			return new FunctionFlow();
 
 		var self = this;
-		var runs = [];
+		self.runs = [];
+
+		return self;
+	}
+
+
+	/**
+	 * add a new function to the parallel run
+	 * @param {functions} doThis
+	 * @returns {FunctionStep}
+	 */
+	FunctionStep.prototype.addParallelTask = function(doThis) {
+		this.runs.push({func : doThis});
+		return this;
+	};
+
+
+	/**
+	 * during run the last added step should be run once for the given array of arguments
+	 * @param {type} args
+	 * @returns {FunctionFlow._L1.FunctionStep}
+	 */
+	FunctionStep.prototype.forEach = function(args) {
+		this.runs[this.runs.length - 1].argsForEach = args;
+		return this;
+	};
+	
+	
+	/**
+	 * during run the last added step should be run once for the given array of arguments
+	 * @param {type} args
+	 * @returns {FunctionFlow._L1.FunctionStep}
+	 */
+	FunctionStep.prototype.withArguments = function(args) {
+		this.runs[this.runs.length - 1].args = Array.prototype.slice.call(arguments, 0);
+		return this;
+	};
+
+
+	/**
+	 * start the parallel run now
+	 * @param {function} stepDone
+	 * @param {mixed} previousStepError the error of the previous step
+	 * @param {mixed} previousStepData the data of the previous step
+	 * @returns {unresolved}
+	 */
+	FunctionStep.prototype.now = function(stepDone, previousStepError, previousStepData) {
+
+		var self = this;
 
 		//storage for results of the step
 		var stepResultError = [];
 		var stepResultData = [];
 
+		var completedRun = 0;
 
-		/**
-		 * add a new function to the parallel run
-		 * @param {functions} doThis
-		 * @returns {FunctionStep}
-		 */
-		self.addParallelTask = function(doThis) {
-			runs.push({func : doThis});
-			return self;
-		};
+		//the run has forEach arguments, replace the single run with one for every element in argsForEach
+		for (var i = self.runs.length - 1; i >= 0; i--) {
 
-		
-		/**
-		 * during run the last added step should be run once for the given array of arguments
-		 * @param {type} args
-		 * @returns {FunctionFlow._L1.FunctionStep}
-		 */
-		self.forEach = function(args) {
-				runs[runs.length-1].argsForEach = args;
-			return self;
-		};
-
-		/**
-		 * start the parallel run now
-		 * @param {function} stepDone
-		 * @returns {unresolved}
-		 */
-		self.now = function(stepDone, argError, argData) {
-
-			var completedRun = 0;
-
-			//the run has forEach arguments, replace the single run with one for every element in argsForEach
-			for (var i = runs.length - 1; i >= 0; i--) {
-				
-				var currentRun = runs[i];
-				if (!runs[i].argsForEach) {
-					continue;
-				}
-				
-				//move the original method
-				runs.splice(i, 1);
-
-				//for every argument set create a new function
-				while (currentRun.argsForEach.length > 0) {
-					var currentArgs = currentRun.argsForEach.pop();
-					runs.splice(i, 0, {
-						func : currentRun.func,
-						args : currentArgs
-					});
-				}
-				
+			var currentRun = self.runs[i];
+			if (!self.runs[i].argsForEach) {
+				continue;
 			}
 
-			//for every function in the step, call the function and fetch the results via the runDone method
-			runs.forEach(function singleRun(currentRun, index) {
+			//move the original method
+			self.runs.splice(i, 1);
+
+			//for every argument set create a new function
+			while (currentRun.argsForEach.length > 0) {
+				var currentArgs = currentRun.argsForEach.pop();
+				self.runs.splice(i, 0, {
+					func : currentRun.func,
+					args : currentArgs
+				});
+			}
+
+		}
+
+		//for every function in the step, call the function and fetch the results via the runDone method
+		self.runs.forEach(function singleRun(currentRun, index) {
 
 
-				/**
-				 * a single run is complete
-				 * @param {type} error
-				 * @param {type} data
-				 * @returns {undefined}
-				 */
-				function runDone(error, data) {
-					stepResultError[index] = error;
-					stepResultData[index] = data;
-					if (runs.length === ++completedRun) {
-						stepDone(stepResultError, stepResultData);
+			/**
+			 * a single run is complete
+			 * @param {type} error
+			 * @param {type} data
+			 * @returns {undefined}
+			 */
+			function runDone(error, data) {
+				stepResultError[index] = error;
+				stepResultData[index] = data;
+				if (self.runs.length === ++completedRun) {
+					stepDone(stepResultError, stepResultData);
+				}
+			}
+
+			var args = [{
+					done : runDone,
+					previousStep : {
+						error : previousStepError,
+						data : previousStepData
 					}
-				}
+			}];
+			if (currentRun.args instanceof Array) {
+				Array.prototype.push.apply(args,currentRun.args);
+			}
 
+			try {
+				currentRun.func.apply(currentRun, args);
+			} catch (error) {
+				runDone(error);
+			}
+		});
 
-
-				try {
-					currentRun.func(runDone, argError, argData, currentRun.args);
-				} catch (error) {
-					runDone(error);
-				}
-			});
-
-			return;
-		};
-
-		return self;
-	}
+		return;
+	};
 
 
 	/**
@@ -143,7 +168,7 @@ var FunctionFlow = (function() {
 		 * @param {function} doThis
 		 * @returns {FunctionFlow}
 		 */
-		self.do = function(doThis) {
+		self.run = function(doThis) {
 			if (typeof doThis !== 'function') {
 				throw new TypeError('do requires first argument to be a function');
 			}
