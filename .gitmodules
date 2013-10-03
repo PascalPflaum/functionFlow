@@ -1,3 +1,9 @@
 [submodule "test/suite/mocha"]
 	path = test/suite/mocha
 	url = https://github.com/visionmedia/mocha.git
+[submodule "test/suite/chai"]
+	path = test/suite/chai
+	url = https://github.com/visionmedia/mocha.git
+[submodule "test/suite/sinon"]
+	path = test/suite/sinon
+	url = https://github.com/cjohansen/Sinon.JS.git
