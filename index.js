@@ -1,4 +1,5 @@
 var FunctionFlow = (function() {
+
 //the magic node export
 	if (typeof module !== 'undefined' && module.exports) {
 		module.exports = FunctionFlow;
@@ -49,8 +50,8 @@ var FunctionFlow = (function() {
 		this.runs[this.runs.length - 1].argsForEach = args;
 		return this;
 	};
-	
-	
+
+
 	/**
 	 * during run the last added step should be run once for the given array of arguments
 	 * @param {type} args
@@ -65,18 +66,17 @@ var FunctionFlow = (function() {
 	/**
 	 * start the parallel run now
 	 * @param {function} stepDone
-	 * @param {mixed} previousStepError the error of the previous step
-	 * @param {mixed} previousStepData the data of the previous step
+	 * @param {mixed} previousStepResult the data and the error of the previous step
 	 * @returns {unresolved}
 	 */
-	FunctionStep.prototype.now = function(stepDone, previousStepError, previousStepData) {
+	FunctionStep.prototype.now = function(stepDone, previousStepResult) {
 
 		var self = this;
 
 		//storage for results of the step
-		var stepResultError = [];
-		var stepResultData = [];
+		var stepResult = [];
 
+		//count complete runs
 		var completedRun = 0;
 
 		//the run has forEach arguments, replace the single run with one for every element in argsForEach
@@ -112,22 +112,19 @@ var FunctionFlow = (function() {
 			 * @returns {undefined}
 			 */
 			function runDone(error, data) {
-				stepResultError[index] = error;
-				stepResultData[index] = data;
+				stepResult[index] = {error : error, data : data};
 				if (self.runs.length === ++completedRun) {
-					stepDone(stepResultError, stepResultData);
+					stepDone(stepResult);
 				}
 			}
 
 			var args = [{
 					done : runDone,
-					previousStep : {
-						error : previousStepError,
-						data : previousStepData
-					}
-			}];
+					previousStepResult : previousStepResult
+				}];
+
 			if (currentRun.args instanceof Array) {
-				Array.prototype.push.apply(args,currentRun.args);
+				Array.prototype.push.apply(args, currentRun.args);
 			}
 
 			try {
@@ -153,22 +150,12 @@ var FunctionFlow = (function() {
 		var self = this;
 		var steps = [];
 
-		function hasErrors(arr) {
-			for (var i = 0; i < arr.length; i++) {
-				if (arr[i] instanceof Error) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-
 		/**
 		 * create a new step
 		 * @param {function} doThis
 		 * @returns {FunctionFlow}
 		 */
-		self.run = function(doThis) {
+		self.then = self.run = function(doThis) {
 			if (typeof doThis !== 'function') {
 				throw new TypeError('do requires first argument to be a function');
 			}
@@ -212,8 +199,16 @@ var FunctionFlow = (function() {
 				flowDone = doNothing;
 			}
 
-			var lastStepError;
-			var lastStepData;
+			var lastStep = [];
+
+			function hasErrors() {
+				for (var i = 0; i < lastStep.length; i++) {
+					if (lastStep[i].error !== undefined) {
+						return true;
+					}
+				}
+				return false;
+			}
 
 
 			/**
@@ -222,16 +217,15 @@ var FunctionFlow = (function() {
 			 */
 			function nextStep() {
 
-				function stepComplete(stepResultError, stepResultData) {
-					lastStepError = stepResultError;
-					lastStepData = stepResultData;
+				function stepComplete(stepResult) {
+					lastStep = stepResult;
 					nextStep();
 				}
 
 
 				//if there are no more steps, call the final callback
-				if (!steps.length || (lastStepError !== undefined && hasErrors(lastStepError))) {
-					flowDone(lastStepError, lastStepData);
+				if (!steps.length || hasErrors()) {
+					flowDone(lastStep);
 					return;
 				}
 
@@ -239,7 +233,7 @@ var FunctionFlow = (function() {
 				var currentStep = steps.shift();
 
 				//and start the step
-				currentStep.now(stepComplete, lastStepError, lastStepData);
+				currentStep.now(stepComplete, lastStep);
 
 				return self;
 			}
