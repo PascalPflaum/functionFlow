@@ -43,7 +43,7 @@ var FunctionFlow = (function() {
 	/**
 	 * during run the last added step should be run once for the given array of arguments
 	 * @param {type} args
-	 * @returns {FunctionFlow._L1.FunctionStep}
+	 * @returns {FunctionStep}
 	 */
 	FunctionStep.prototype.forEach = function(args) {
 		this.runs[this.runs.length - 1].argsForEach = args;
@@ -54,10 +54,10 @@ var FunctionFlow = (function() {
 	/**
 	 * during run the last added step should be run once for the given array of arguments
 	 * @param {type} args
-	 * @returns {FunctionFlow._L1.FunctionStep}
+	 * @returns {FunctionStep}
 	 */
-	FunctionStep.prototype.withArguments = function(args) {
-		this.runs[this.runs.length - 1].args = Array.prototype.slice.call(arguments, 0);
+	FunctionStep.prototype.with = function(args) {
+		this.runs[this.runs.length - 1].args = args;
 		return this;
 	};
 
@@ -87,12 +87,15 @@ var FunctionFlow = (function() {
 				continue;
 			}
 
-			//move the original method
+			//remove the original method
 			self.runs.splice(i, 1);
 
-			//for every argument set create a new function
+			//for every argument group create a new function
 			while (currentRun.argsForEach.length > 0) {
 				var currentArgs = currentRun.argsForEach.pop();
+				if (typeof currentArgs !== 'object') {
+					currentArgs = [currentArgs];
+				}
 				self.runs.splice(i, 0, {
 					func : currentRun.func,
 					args : currentArgs
@@ -194,6 +197,18 @@ var FunctionFlow = (function() {
 			return self;
 		};
 
+
+		self.with = function() {
+			steps[steps.length - 1].with(Array.prototype.slice.call(arguments, 0));
+			return self;
+		};
+		
+		
+		/**
+		 * calls the given function once for each of the given arguments
+		 * @param {type} elements
+		 * @returns {_L1.FunctionFlow}
+		 */
 		self.forEach = function(elements) {
 			steps[steps.length - 1].forEach(elements);
 			return self;

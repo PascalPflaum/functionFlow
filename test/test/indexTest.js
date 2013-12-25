@@ -1,4 +1,4 @@
-if (typeof(exports) !== 'undefined') {
+if (typeof (exports) !== 'undefined') {
 	var chai = require('chai');
 	var sinonChai = require("sinon-chai");
 	var sinon = require('sinon');
@@ -180,6 +180,33 @@ describe('errors', function() {
 
 });
 
+describe('parsing arguments with "with"', function() {
+	it('parsing one argument', function() {
+		var flow = new FunctionFlow();
+
+		var firstStep = sinon.spy(function(flow, parsedArgumentA) {
+
+			expect(parsedArgumentA).to.be.equal('argumentTestA');
+			flow.done();
+		});
+		flow.run(firstStep).with('argumentTestA').now(function() {
+		});
+	});
+
+	it('parsing three argument', function() {
+		var flow = new FunctionFlow();
+
+		var firstStep = sinon.spy(function(flow, parsedArgumentA, b, c) {
+
+			expect(parsedArgumentA).to.be.equal('argumentTestA');
+			expect(b).to.be.equal(2);
+			expect(c).to.be.equal(3);
+			flow.done();
+		});
+		flow.run(firstStep).with('argumentTestA', 2, 3).now(function() {
+		});
+	});
+});
 
 describe('do for all', function() {
 	it('calling with one element, single argument', function(done) {
@@ -204,7 +231,7 @@ describe('do for all', function() {
 				flow.done(undefined, true);
 			});
 		});
-		flow.run(firstStep).forEach([['argumentTestA']]).now(flowDone);
+		flow.run(firstStep).forEach(['argumentTestA']).now(flowDone);
 	});
 
 	it('calling with two element, single argument', function(done) {
@@ -225,7 +252,7 @@ describe('do for all', function() {
 		var run = 0;
 
 		var firstStep = sinon.spy(function(flow, parsedArgumentA) {
-			
+
 			run++;
 			if (run === 1) {
 				var assumedArgument = 'argumentTestA';
