@@ -35,7 +35,7 @@ var FunctionFlow = (function() {
 	 * @returns {FunctionStep}
 	 */
 	FunctionStep.prototype.addParallelTask = function(doThis) {
-		this.runs.push({func : doThis});
+		this.runs.push({func: doThis});
 		return this;
 	};
 
@@ -49,8 +49,8 @@ var FunctionFlow = (function() {
 		this.runs[this.runs.length - 1].argsForEach = args;
 		return this;
 	};
-	
-	
+
+
 	/**
 	 * during run the last added step should be run once for the given array of arguments
 	 * @param {type} args
@@ -97,8 +97,8 @@ var FunctionFlow = (function() {
 					currentArgs = [currentArgs];
 				}
 				self.runs.splice(i, 0, {
-					func : currentRun.func,
-					args : currentArgs
+					func: currentRun.func,
+					args: currentArgs
 				});
 			}
 
@@ -122,15 +122,18 @@ var FunctionFlow = (function() {
 				}
 			}
 
-			var args = [{
-					done : runDone,
-					previousStep : {
-						error : previousStepError,
-						data : previousStepData
+			var args = [
+				{
+					done: runDone,
+					previousStep: {
+						error: previousStepError,
+						data: previousStepData
 					}
-			}];
+				}
+			];
+
 			if (currentRun.args instanceof Array) {
-				Array.prototype.push.apply(args,currentRun.args);
+				Array.prototype.push.apply(args, currentRun.args);
 			}
 
 			try {
@@ -155,7 +158,18 @@ var FunctionFlow = (function() {
 
 		var self = this;
 		var steps = [];
+		
+		var errorHandling = 1;
+		// 0 = immediately
+		// 1 = After Step
+		// 2 = Never
 
+
+		/**
+		 * checks an array for having errors
+		 * @param {array} arr
+		 * @returns {Boolean}
+		 */
 		function hasErrors(arr) {
 			for (var i = 0; i < arr.length; i++) {
 				if (arr[i] instanceof Error) {
@@ -164,6 +178,26 @@ var FunctionFlow = (function() {
 			}
 			return false;
 		}
+
+
+		/**
+		 * will stop the flow direct after the parallel step
+		 * @returns {FunctionFlow}
+		 */
+		self.onErrorEndAfterStep = function() {
+			errorHandling = 1;
+			return self;
+		};
+		
+		
+		/**
+		 * will stop the flow direct after the parallel step
+		 * @returns {FunctionFlow}
+		 */
+		self.onErrorNeverStop = function() {
+			errorHandling = 2;
+			return self;
+		};
 
 
 		/**
@@ -202,8 +236,8 @@ var FunctionFlow = (function() {
 			steps[steps.length - 1].with(Array.prototype.slice.call(arguments, 0));
 			return self;
 		};
-		
-		
+
+
 		/**
 		 * calls the given function once for each of the given arguments
 		 * @param {type} elements
@@ -245,7 +279,7 @@ var FunctionFlow = (function() {
 
 
 				//if there are no more steps, call the final callback
-				if (!steps.length || (lastStepError !== undefined && hasErrors(lastStepError))) {
+				if (!steps.length || (lastStepError !== undefined && errorHandling < 2 && hasErrors(lastStepError))) {
 					flowDone(lastStepError, lastStepData);
 					return;
 				}

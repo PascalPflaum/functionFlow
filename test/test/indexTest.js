@@ -116,7 +116,7 @@ describe('errors', function() {
 		flow.run(firstStep).now(flowDone);
 	});
 
-	it('a error stops the execution of a flow', function(done) {
+	it('a returned error stops the execution of a flow', function(done) {
 		var flow = new FunctionFlow();
 		var flowDone = sinon.spy(function(error, data) {
 			expect(error).to.have.length(1);
@@ -128,7 +128,7 @@ describe('errors', function() {
 				expect(dat).to.be.undefined;
 			});
 			expect(firstStep).to.be.calledOnce;
-			expect(secondsStep).to.not.be.called;
+			expect(secondStep).to.not.be.called;
 			expect(flowDone).to.be.calledOnce;
 			done();
 		});
@@ -138,14 +138,15 @@ describe('errors', function() {
 				flow.done(new Error('TestError'), undefined);
 			});
 		});
-		var secondsStep = sinon.spy(function(flow) {
+		var secondStep = sinon.spy(function(flow) {
 			setTimeout(function() {
 				flow.done(undefined, true);
 			});
 		});
 
-		flow.run(firstStep).run(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondStep).now(flowDone);
 	});
+
 	it('a thrown error stops the execution of a flow', function(done) {
 		var flow = new FunctionFlow();
 		var flowDone = sinon.spy(function(error, data) {
@@ -158,7 +159,7 @@ describe('errors', function() {
 				expect(dat).to.be.undefined;
 			});
 			expect(firstStep).to.be.calledOnce;
-			expect(secondsStep).to.not.be.called;
+			expect(secondStep).to.not.be.called;
 			expect(flowDone).to.be.calledOnce;
 			done();
 		});
@@ -169,13 +170,96 @@ describe('errors', function() {
 				flow.done(undefined, true);
 			});
 		});
-		var secondsStep = sinon.spy(function(flow) {
+		var secondStep = sinon.spy(function(flow) {
 			setTimeout(function() {
 				flow.done(undefined, true);
 			});
 		});
 
-		flow.run(firstStep).run(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondStep).now(flowDone);
+	});
+
+	describe('configuratable behavior of error handling', function() {
+		var flow;
+		var firstStepA;
+		var firstStepB;
+		var secondStep;
+
+		beforeEach(function() {
+			flow = new FunctionFlow();
+			firstStepA = sinon.spy(function(flow) {
+				throw new ReferenceError('TestError');
+				setTimeout(function() {
+					flow.done(undefined, true);
+				});
+			});
+			firstStepB = sinon.spy(function(flow) {
+				setTimeout(function() {
+					flow.done(undefined, 'b');
+				});
+			});
+			secondStep = sinon.spy(function(flow) {
+				flow.done(undefined, '2');
+			});
+		});
+
+		describe('default, #onErrorEndAfterStep(), parallel tasks are still all executed, even when one has an error', function() {
+
+			var expections = function(error, data) {
+				expect(error).to.have.length(2);
+				expect(error[0]).to.be.instanceof(Error);
+				expect(error[1]).to.be.undefined;
+				expect(data).to.have.length(2);
+				expect(data[0]).to.be.undefined;
+				expect(data[1]).to.be.equal('b');
+				expect(firstStepA).to.be.calledOnce;
+				expect(firstStepB).to.be.calledOnce;
+				expect(secondStep).to.not.be.called;
+			};
+
+			it('not called, default value', function(done) {
+				var flowDone = sinon.spy(function(error, data) {
+					expections(error, data);
+					done();
+				});
+
+				flow.run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
+			});
+
+			it('after calling #onErrorEndAfterStep()', function(done) {
+				var flowDone = sinon.spy(function(error, data) {
+					expections(error, data);
+					done();
+				});
+
+				flow.onErrorEndAfterStep().run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
+			});
+		});
+
+		describe('#onErrorNeverStop()', function() {
+
+			var expections = function(error, data) {
+				expect(error).to.have.length(1);
+				expect(error[0]).to.be.undefined;
+				expect(data).to.have.length(1);
+				expect(data[0]).to.be.equal('2');
+				expect(firstStepA).to.be.calledOnce;
+				expect(firstStepB).to.be.calledOnce;
+				expect(secondStep).to.be.calledOnce;
+			};
+
+
+			it('an error doesn\'t stop the execution', function(done) {
+				
+				var flowDone = sinon.spy(function(error, data) {
+					expections(error, data);
+					done();
+				});
+
+				flow.onErrorNeverStop().run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
+			});
+		});
+
 	});
 
 });
@@ -283,7 +367,7 @@ describe('data parsing to next step', function() {
 				expect(dat).to.be.true;
 			});
 			expect(firstStep).to.be.calledOnce;
-			expect(secondsStep).to.be.calledOnce;
+			expect(secondStep).to.be.calledOnce;
 			expect(flowDone).to.be.calledOnce;
 			done();
 		});
@@ -293,7 +377,7 @@ describe('data parsing to next step', function() {
 				flow.done(undefined, false);
 			});
 		});
-		var secondsStep = sinon.spy(function(flow) {
+		var secondStep = sinon.spy(function(flow) {
 			expect(flow.previousStep.error).to.have.length(1);
 			flow.previousStep.error.forEach(function(err) {
 				expect(err).to.be.undefined;
@@ -306,7 +390,7 @@ describe('data parsing to next step', function() {
 			});
 		});
 
-		flow.run(firstStep).run(secondsStep).now(flowDone);
+		flow.run(firstStep).run(secondStep).now(flowDone);
 	});
 
 
