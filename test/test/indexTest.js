@@ -187,12 +187,7 @@ describe('errors', function() {
 
 		beforeEach(function() {
 			flow = new FunctionFlow();
-			firstStepA = sinon.spy(function(flow) {
-				throw new ReferenceError('TestError');
-				setTimeout(function() {
-					flow.done(undefined, true);
-				});
-			});
+			firstStepA = sinon.stub().throws(new ReferenceError('TestError'));
 			firstStepB = sinon.spy(function(flow) {
 				setTimeout(function() {
 					flow.done(undefined, 'b');
@@ -203,7 +198,7 @@ describe('errors', function() {
 			});
 		});
 
-		describe('default, #onErrorEndAfterStep(), parallel tasks are still all executed, even when one has an error', function() {
+		describe('default, #onErrorStopAfterStep(), parallel tasks are still all executed, even when one has an error', function() {
 
 			var expections = function(error, data) {
 				expect(error).to.have.length(2);
@@ -226,13 +221,13 @@ describe('errors', function() {
 				flow.run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
 			});
 
-			it('after calling #onErrorEndAfterStep()', function(done) {
+			it('after calling #onErrorStopAfterStep()', function(done) {
 				var flowDone = sinon.spy(function(error, data) {
 					expections(error, data);
 					done();
 				});
 
-				flow.onErrorEndAfterStep().run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
+				flow.onErrorStopAfterStep().run(firstStepA).and(firstStepB).run(secondStep).now(flowDone);
 			});
 		});
 
@@ -248,9 +243,8 @@ describe('errors', function() {
 				expect(secondStep).to.be.calledOnce;
 			};
 
-
 			it('an error doesn\'t stop the execution', function(done) {
-				
+
 				var flowDone = sinon.spy(function(error, data) {
 					expections(error, data);
 					done();
@@ -260,8 +254,30 @@ describe('errors', function() {
 			});
 		});
 
-	});
+		describe('#onErrorStopASAP()', function() {
 
+			it('when an error appeared, no new parallel task is started', function(done) {
+				var errorFunc = sinon.stub().throws('Demo');
+				var returningSync = sinon.spy(function(flow) {
+					flow.done(undefined, 'Earth');
+				});
+//				setTimeout(function() {
+//					expect(returningSync).to.be.calledOnce;
+//					
+//				});
+				flow.onErrorStopASAP().run(returningSync).and(errorFunc).and(returningSync).now(function(error, data) {
+					expect(returningSync).to.be.calledOnce;
+					expect(errorFunc).to.be.calledOnce;
+					expect(error[0]).to.be.undefined;
+					expect(error[1]).to.be.instanceof(Error);
+					expect(data[0]).to.be.equal('Earth');
+					expect(data[1]).to.be.undefined;
+					
+					done();
+				});
+			});
+		});
+	});
 });
 
 describe('parsing arguments with "with"', function() {
