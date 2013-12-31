@@ -256,15 +256,29 @@ describe('errors', function() {
 
 		describe('#onErrorStopASAP()', function() {
 
-			it('when an error appeared, no new parallel task is started', function(done) {
-				var errorFunc = sinon.stub().throws('Demo');
-				var returningSync = sinon.spy(function(flow) {
+			var errorFunc;
+			var errorFuncAsync;
+			var returningSync;
+			var returningAsync;
+
+			beforeEach(function() {
+				errorFunc = sinon.stub().throws('Demo');
+				errorFuncAsync = sinon.spy(function(flow) {
+					setTimeout(function() {
+						flow.done(new Error('Demo'));
+					});
+				});
+				returningSync = sinon.spy(function(flow) {
 					flow.done(undefined, 'Earth');
 				});
-//				setTimeout(function() {
-//					expect(returningSync).to.be.calledOnce;
-//					
-//				});
+				returningAsync = sinon.spy(function(flow) {
+					setTimeout(function() {
+						flow.done(undefined, 'Earth');
+					});
+				});
+			});
+
+			it('when an error appeared, no new parallel task is started', function(done) {
 				flow.onErrorStopASAP().run(returningSync).and(errorFunc).and(returningSync).now(function(error, data) {
 					expect(returningSync).to.be.calledOnce;
 					expect(errorFunc).to.be.calledOnce;
@@ -272,8 +286,21 @@ describe('errors', function() {
 					expect(error[1]).to.be.instanceof(Error);
 					expect(data[0]).to.be.equal('Earth');
 					expect(data[1]).to.be.undefined;
-					
+
 					done();
+				});
+			});
+
+			it('after an error occured the data and error arrays are not manipulated by already started tasks', function(done) {
+				flow.onErrorStopASAP().run(returningSync).and(errorFuncAsync).and(returningAsync).now(function(error, data) {
+					expect(returningSync).to.be.calledOnce;
+					expect(returningAsync).to.be.calledOnce;
+					expect(errorFuncAsync).to.be.calledOnce;
+					setTimeout(function() {
+						expect(error).to.have.length(2);
+						expect(data).to.have.length(2);
+						done();
+					});
 				});
 			});
 		});

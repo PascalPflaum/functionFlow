@@ -83,6 +83,7 @@ var FunctionFlow = (function() {
 	 * @param {function} stepDone
 	 * @param {mixed} previousStepError the error of the previous step
 	 * @param {mixed} previousStepData the data of the previous step
+	 * @param {number} errorHandling indicates how errors should be handled during execution
 	 * @returns {unresolved}
 	 */
 	FunctionStep.prototype.now = function(stepDone, previousStepError, previousStepData, errorHandling) {
@@ -95,11 +96,14 @@ var FunctionFlow = (function() {
 			 * @returns {undefined}
 			 */
 			return function runDone(error, data) {
-				stepResultError[i] = error;
-				stepResultData[i] = data;
-				if (!stepComplete && (self.runs.length === ++completedRun || (errorHandling === 0 && error))) {
-					stepComplete = true;
-					stepDone(stepResultError, stepResultData);
+				if (!stepComplete) {
+
+					stepResultError[i] = error;
+					stepResultData[i] = data;
+					if (self.runs.length === ++completedRun || (errorHandling === 0 && error)) {
+						stepComplete = true;
+						stepDone(stepResultError, stepResultData);
+					}
 				}
 			};
 		}
