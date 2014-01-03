@@ -18,7 +18,7 @@ function getTheMax(flow) {
 	flow.done(Math.max.apply(this, flow.previousStep.data));
 }
 
-function flowDone(data, error) {
+function flowDone(error, data) {
 	console.log('MaxValue: ' + data);
 	redisClient.quit();
 }

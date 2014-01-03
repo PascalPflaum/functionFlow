@@ -292,7 +292,14 @@ var FunctionFlow = (function() {
 			 * @returns {FunctionFlow}
 			 */
 			function nextStep() {
-
+				
+				
+				/*
+				 * the callback for the step to indicate it has completed all tasks
+				 * @param {mixed} stepResultError
+				 * @param {mixed} stepResultData
+				 * @returns [undefined}
+				 */
 				function stepComplete(stepResultError, stepResultData) {
 					lastStepError = stepResultError;
 					lastStepData = stepResultData;
