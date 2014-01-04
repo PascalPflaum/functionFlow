@@ -361,6 +361,50 @@ describe('do for all', function() {
 		flow.run(firstStep).forEach(['argumentTestA']).now(flowDone);
 	});
 
+	it('order of function calls with .forEach()', function(done) {
+		var spy = sinon.spy(function(flow, nr) {
+			expect(spy.callCount).to.be.equal(nr);
+			flow.done(undefined, nr);
+		});
+		
+		var flow = new FunctionFlow();
+		var arr = [1, 2, 3, 4, 5];
+		
+		flow.run(spy).forEach(arr).now(function(error, data) {
+			error.forEach(function(value) {
+				expect(value).to.be.undefined;
+			});
+			expect(arr).to.be.deep.equal(arr);
+			expect(spy.callCount).to.be.equal(5);
+			done();
+		});
+	});
+
+	describe('Array parsed to .forEach() is not destroyed', function() {
+		it('without nested arguments', function(done) {
+			var flow = new FunctionFlow();
+			var spy = sinon.stub();
+			var arr = [1, 2, 3, 4, 5];
+			flow.run(spy).forEach(arr).now(function() {
+				expect(spy.callCount).to.be.equal(5);
+				expect(arr).to.be.deep.equal([1, 2, 3, 4, 5]);
+				done();
+			});
+			spy.yieldTo('done');
+		});
+		it('with nested arguments', function(done) {
+			var flow = new FunctionFlow();
+			var spy = sinon.stub();
+			var arr = [[1], [2], [3], [4], [5]];
+			flow.run(spy).forEach(arr).now(function() {
+				expect(spy.callCount).to.be.equal(5);
+				expect(arr).to.be.deep.equal([[1], [2], [3], [4], [5]]);
+				done();
+			});
+			spy.yieldTo('done');
+		});
+	});
+
 	it('calling with two element, single argument', function(done) {
 		var flow = new FunctionFlow();
 		var flowDone = sinon.spy(function(error, data) {

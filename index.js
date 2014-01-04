@@ -57,6 +57,17 @@ var FunctionFlow = (function() {
 
 
 	/**
+	 * run the last given task x times
+	 * @param {number} nr
+	 * @returns {FunctionStep}
+	 */
+	FunctionStep.prototype.times = function(nr) {
+		this.runs[this.runs.length - 1].times = nr;
+		return this;
+	};
+
+
+	/**
 	 * during run the last added step should be run once for the given array of arguments
 	 * @param {type} args
 	 * @returns {FunctionStep}
@@ -121,25 +132,39 @@ var FunctionFlow = (function() {
 		for (var i = self.runs.length - 1; i >= 0; i--) {
 
 			var currentRun = self.runs[i];
-			if (!self.runs[i].argsForEach) {
-				continue;
-			}
+			if (currentRun.argsForEach) {
 
-			//remove the original method
-			self.runs.splice(i, 1);
+				//remove the original method
+				self.runs.splice(i, 1);
 
-			//for every argument group create a new function
-			while (currentRun.argsForEach.length > 0) {
-				var currentArgs = currentRun.argsForEach.pop();
-				if (typeof currentArgs !== 'object') {
-					currentArgs = [currentArgs];
+				//for every argument group create a new function
+				for (var j = 0; j < currentRun.argsForEach.length; j++) {
+
+					var currentArgs = currentRun.argsForEach[j];
+					if (typeof currentArgs !== 'object') {
+						currentArgs = [currentArgs];
+					}
+					
+					self.runs.splice(i + j, 0, {
+						func: currentRun.func,
+						args: currentArgs
+					});
 				}
-				self.runs.splice(i, 0, {
-					func: currentRun.func,
-					args: currentArgs
-				});
-			}
 
+			} else if (currentRun.times) {
+
+				//remove the original method
+				self.runs.splice(i, 1);
+
+				//for every argument group create a new function
+				for (var j = 0; j < currentRun.times; j++) {
+					self.runs.splice(i + j, 0, {
+						func: currentRun.func,
+						args: currentRun.args
+					});
+				}
+
+			}
 		}
 
 		//for every function in the step, call the function and fetch the results via the runDone method
@@ -154,6 +179,7 @@ var FunctionFlow = (function() {
 			//create a done method for this run
 			var runDone = getRunDone(i);
 
+			//create the arguments for the function
 			var args = [
 				{
 					done: runDone,
@@ -164,6 +190,7 @@ var FunctionFlow = (function() {
 				}
 			];
 
+			//add additional arguments
 			if (currentRun.args instanceof Array) {
 				Array.prototype.push.apply(args, currentRun.args);
 			}
@@ -246,7 +273,7 @@ var FunctionFlow = (function() {
 		 */
 		self.and = function(doThis) {
 			if (typeof doThis !== 'function') {
-				throw new TypeError('and requires first argument to be a function');
+				throw new TypeError('and() requires first argument to be a function');
 			}
 
 			steps[steps.length - 1].addParallelTask(doThis);
@@ -254,6 +281,10 @@ var FunctionFlow = (function() {
 		};
 
 
+		/**
+		 * calls the previous function with the given arguements
+		 * @returns {FunctionFlow}
+		 */
 		self.with = function() {
 			steps[steps.length - 1].with(Array.prototype.slice.call(arguments, 0));
 			return self;
@@ -262,11 +293,28 @@ var FunctionFlow = (function() {
 
 		/**
 		 * calls the given function once for each of the given arguments
-		 * @param {type} elements
-		 * @returns {_L1.FunctionFlow}
+		 * @param {array} elements
+		 * @returns {FunctionFlow}
 		 */
 		self.forEach = function(elements) {
 			steps[steps.length - 1].forEach(elements);
+			return self;
+		};
+
+
+		/*
+		 * runs the given function X times
+		 * @param {number} nr
+		 * @returns {FunctionFlow}
+		 */
+		self.times = function(nr) {
+			if (isNaN(nr)) {
+				throw new TypeError('times() requires first argument to be a number');
+			} else if (nr < 1) {
+				throw new Error('times() requires a psoitive number');
+			}
+
+			steps[steps.length - 1].times(parseInt(nr, 10));
 			return self;
 		};
 
@@ -292,8 +340,8 @@ var FunctionFlow = (function() {
 			 * @returns {FunctionFlow}
 			 */
 			function nextStep() {
-				
-				
+
+
 				/*
 				 * the callback for the step to indicate it has completed all tasks
 				 * @param {mixed} stepResultError
