@@ -10,19 +10,19 @@ To realize this, functions that should be executed parallel are named "tasks", a
 Download the repository (or at least the "index.js") and then ...
 
 ### Node.js
-...
+```js
 var FunctionFlow = require('flow/index.js');
-...
-#### Browser
-...
+```
+### Browser
+```
 <script src="flow/index.js"></script>
-...
+```
 
 ## Basic examples
 
 ### One step with three parallel tasks
 In this example we are creating one step with three (async) tasks in parallel.
-...
+```js
 var flow = new FunctionFlow();
 
 flow.run(function(flow) {
@@ -40,19 +40,19 @@ flow.run(function(flow) {
 }).now(function(error, data) {
 	console.log('Superheroes\n-------------\n' + data.join('\n'));
 });
-...
+```
 when the last task has finished after 500ms, this will print:
-...
+```
 Superheroes
 -------------
 Aquaman
 Green Lantern
 Wonderwomen
-...
+```
 The order of the elements in the data array that will be parsed to the final "now" callback depends on the order of adding functions and not on the order of calling the "flow.done" function.
 
 ### Three steps, each with a single task
-...
+```js
 var flow = new FunctionFlow();
 
 function step1(flow) {
@@ -73,6 +73,6 @@ function finalCallback(error, data) {
 }
 
 flow.run(step1).run(step2).run(step3).now(finalCallback);
-...
+```
 
 Please have also a look in the "example" folder.
