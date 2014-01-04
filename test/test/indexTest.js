@@ -307,7 +307,7 @@ describe('errors', function() {
 	});
 });
 
-describe('parsing arguments with "with"', function() {
+describe('parsing arguments with ".with()"', function() {
 	it('parsing one argument', function() {
 		var flow = new FunctionFlow();
 
@@ -335,7 +335,24 @@ describe('parsing arguments with "with"', function() {
 	});
 });
 
-describe('do for all', function() {
+describe('combination of .forEach() and .with()', function() {
+	it('.with() arguments should be parsed before the .forEach() arguments', function(done) {
+		var flow = new FunctionFlow();
+		var stub = sinon.stub();
+		flow.run(stub).with('First').forEach(['SecondA','SecondB']).now(function() {
+			expect(stub.getCall(0).args).to.have.length(3);
+			expect(stub.getCall(0).args[1]).to.be.equal('First');
+			expect(stub.getCall(0).args[2]).to.be.equal('SecondA');
+			expect(stub.getCall(1).args).to.have.length(3);
+			expect(stub.getCall(1).args[1]).to.be.equal('First');
+			expect(stub.getCall(1).args[2]).to.be.equal('SecondB');
+			done();
+		});
+		stub.yieldTo('done');
+	});
+});
+
+describe('using .forEach()', function() {
 	it('calling with one element, single argument', function(done) {
 		var flow = new FunctionFlow();
 		var flowDone = sinon.spy(function(error, data) {

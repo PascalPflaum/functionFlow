@@ -140,11 +140,18 @@ var FunctionFlow = (function() {
 				//for every argument group create a new function
 				for (var j = 0; j < currentRun.argsForEach.length; j++) {
 
-					var currentArgs = currentRun.argsForEach[j];
-					if (typeof currentArgs !== 'object') {
-						currentArgs = [currentArgs];
+					var currentArgs = [];
+					if (currentRun.args) {
+						Array.prototype.push.apply(currentArgs, currentRun.args);
 					}
-					
+
+					var argsFromForEach = currentRun.argsForEach[j];
+					if (typeof argsFromForEach !== 'object') {
+						argsFromForEach = [argsFromForEach];
+					}
+
+					Array.prototype.push.apply(currentArgs, argsFromForEach);
+
 					self.runs.splice(i + j, 0, {
 						func: currentRun.func,
 						args: currentArgs
