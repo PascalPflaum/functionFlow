@@ -4,10 +4,10 @@ if (typeof (exports) !== 'undefined') {
 	var sinon = require('sinon');
 	chai.use(sinonChai);
 
-	var libpath = (process.env['FUNCTION_FLOW_COV'] ? 'cov/' : '');
+	var libpath = (process.env['FUNCTION_FLOW_COV'] ? 'test/coverage/lib/' : 'lib/');
 
 	// The Lib we want to test
-	var FunctionFlow = require('../../' + libpath + 'index.js');
+	var FunctionFlow = require('../../' + libpath + 'functionFlow.js');
 }
 
 chai.Assertion.includeStack = true; // defaults to false
