@@ -90,6 +90,42 @@ describe('method order', function() {
 	});
 });
 
+describe('deferred done interface', function() {
+	it('#resolve()', function(done) {
+		var flow = new FunctionFlow();
+		var flowDone = sinon.spy(function() {
+			expect(firstStep).to.be.calledOnce;
+			expect(flowDone).to.be.calledOnce;
+			expect(flowDone).always.have.been.calledWithExactly([undefined], ['NaNaNa']);
+			done();
+		});
+		var firstStep = sinon.spy(function(flow) {
+			setTimeout(function() {
+				flow.done.resolve('NaNaNa');
+			});
+		});
+
+		flow.run(firstStep).now(flowDone);
+	});
+
+	it('#reject()', function(done) {
+		var flow = new FunctionFlow();
+		var flowDone = sinon.spy(function() {
+			expect(firstStep).to.be.calledOnce;
+			expect(flowDone).to.be.calledOnce;
+			expect(flowDone).always.have.been.calledWithExactly(['NaNaNa'], [undefined]);
+			done();
+		});
+		var firstStep = sinon.spy(function(flow) {
+			setTimeout(function() {
+				flow.done.reject('NaNaNa');
+			});
+		});
+
+		flow.run(firstStep).now(flowDone);
+	});
+});
+
 describe('errors', function() {
 	it('a step throws an error', function(done) {
 		var flow = new FunctionFlow();
@@ -339,7 +375,7 @@ describe('combination of .forEach() and .with()', function() {
 	it('.with() arguments should be parsed before the .forEach() arguments', function(done) {
 		var flow = new FunctionFlow();
 		var stub = sinon.stub();
-		flow.run(stub).with('First').forEach(['SecondA','SecondB']).now(function() {
+		flow.run(stub).with('First').forEach(['SecondA', 'SecondB']).now(function() {
 			expect(stub.getCall(0).args).to.have.length(3);
 			expect(stub.getCall(0).args[1]).to.be.equal('First');
 			expect(stub.getCall(0).args[2]).to.be.equal('SecondA');
@@ -383,10 +419,10 @@ describe('using .forEach()', function() {
 			expect(spy.callCount).to.be.equal(nr);
 			flow.done(undefined, nr);
 		});
-		
+
 		var flow = new FunctionFlow();
 		var arr = [1, 2, 3, 4, 5];
-		
+
 		flow.run(spy).forEach(arr).now(function(error, data) {
 			error.forEach(function(value) {
 				expect(value).to.be.undefined;

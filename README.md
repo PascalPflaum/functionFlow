@@ -41,7 +41,7 @@ flow.run(function(flow) {
 	console.log('Superheroes\n-------------\n' + data.join('\n'));
 });
 ```
-when the last task has finished after 500ms, this will print:
+when the last task has finished after 500ms, this will print
 ```
 Superheroes
 -------------
@@ -50,6 +50,28 @@ Green Lantern
 Wonderwomen
 ```
 The order of the elements in the data array that will be parsed to the final "now" callback depends on the order of adding functions and not on the order of calling the "flow.done" function.
+
+### Alternative deferred interface for calling done
+Instead of calling flow.done(ERROR) or flow.done(undefined, DATA), you can call flow.done.reject(ERROR), or flow.done.resolve(DATA).
+```js
+var flow = new FunctionFlow();
+
+flow.run(function(flow) {
+	setTimeout(function() {
+		flow.done.resolve('Aquaman');
+	}, 200);
+}).and(function(flow) {
+	setTimeout(function() {
+		flow.done.resolve('Green Lantern');
+	}, 100);
+}).and(function(flow) {
+	setTimeout(function() {
+		flow.done.resolve('Wonderwomen');
+	}, 500);
+}).now(function(error, data) {
+	console.log('Superheroes\n-------------\n' + data.join('\n'));
+});
+```
 
 ### Three steps, each with a single task
 ```js
